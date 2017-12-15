@@ -1,6 +1,16 @@
-document.addEventListener('DOMContentLoaded', addButtonEventListeners)
+// I'm not fond of this being global, but students getting this assignment
+// aren't yet ready for the techniques I'd use to keep it local to functions.
+const exprArray = []
 
-let expressionText = ''
+// Adds a symbol property to the operator functions. I know this
+// isn't typical, but it makes formatting the expression easier.
+// These functions are defined at the end of this file.
+add.symbol = '+'
+divide.symbol = '/'
+subtract.symbol = '-'
+multiply.symbol = '*'
+
+document.addEventListener('DOMContentLoaded', addButtonEventListeners)
 
 function addButtonEventListeners () {
   const buttons = document.getElementsByTagName('button')
@@ -10,22 +20,80 @@ function addButtonEventListeners () {
 }
 
 function handleButtonClick (e) {
-  if (e.target.value === '=') {
-    const result = processMultiplication(expressionText.replace(/ /g, ''))
-    document.getElementById('answer').innerHTML = result
-    expressionText = ''
-  } else {
-    expressionText += ' ' + e.target.value
+  const buttonValue = e.target.value
+  // TODO: add support for CE
+  switch (buttonValue) {
+    case 'ac':
+      // empties the expression array
+      exprArray.splice(0, exprArray.length)
+      // falls through
+    case '=':
+      document.getElementById('answer').innerHTML = getExprResult(exprArray)
+      break
+    case multiply.symbol:
+      exprArray.push(multiply)
+      break
+    case divide.symbol:
+      exprArray.push(divide)
+      break
+    case subtract.symbol:
+      exprArray.push(subtract)
+      break
+    case add.symbol:
+      exprArray.push(add)
+      break
+    default:
+      addNumber(buttonValue)
   }
 
-  document.getElementById('display').innerHTML = expressionText
+  const currentExpr = document.getElementById('current-expression')
+  currentExpr.innerHTML = makeExprText(exprArray)
 }
 
-function processMultiplication (exp) {
-  const opIdx = exp.indexOf('*')
-  if (opIdx > -1) {
-    // TODO: add out of bounds checks
-    const product = Number(exp[opIdx - 1]) * Number(exp[opIdx + 1])
-    return product
+function addNumber (value) {
+  const lastIdx = exprArray.length - 1
+  if (typeof exprArray[lastIdx] === 'string') {
+    // for concatenating multi-digit numbers
+    exprArray[lastIdx] = exprArray[lastIdx] + value
+  } else {
+    exprArray.push(value)
   }
+}
+
+function makeExprText () {
+  return exprArray.reduce((prev, curr) => {
+    return prev + ' ' + (typeof curr === 'function' ? curr.symbol : curr)
+  }, '')
+}
+
+function getExprResult () {
+  let operator = null
+  let op1 = 0
+  let op2 = 0
+  exprArray.forEach((item, id) => {
+    if (typeof item === 'function') {
+      // TODO: add out of bounds checks
+      operator = item
+      op1 = Number(exprArray[id - 1])
+      op2 = Number(exprArray[id + 1])
+    }
+  })
+  // return zero if expr is an empty array
+  return operator ? operator(op1, op2) : 0
+}
+
+function multiply (op1, op2) {
+  return op1 * op2
+}
+
+function divide (op1, op2) {
+  return op1 / op2
+}
+
+function add (op1, op2) {
+  return op1 + op2
+}
+
+function subtract (op1, op2) {
+  return op1 - op2
 }
